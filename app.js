@@ -5,8 +5,86 @@ const STORE = "records";
 
 let allRecords = [];
 let filteredRecords = [];
+const photoUrlCache = new Map();
 
 const $ = (id) => document.getElementById(id);
+
+function revokePhotoUrls() {
+  for (const url of photoUrlCache.values()) {
+    try { URL.revokeObjectURL(url); } catch (_) {}
+  }
+  photoUrlCache.clear();
+}
+
+function photoUrl(record) {
+  if (!record) return "";
+  if (record.photo) return record.photo; // backward compatibility with old JSON format
+  if (!record.photo_blob) return "";
+  if (photoUrlCache.has(record.id)) return photoUrlCache.get(record.id);
+  const url = URL.createObjectURL(record.photo_blob);
+  photoUrlCache.set(record.id, url);
+  return url;
+}
+
+function mimeFromName(name) {
+  const n = (name || "").toLowerCase();
+  if (n.endsWith(".png")) return "image/png";
+  if (n.endsWith(".webp")) return "image/webp";
+  if (n.endsWith(".gif")) return "image/gif";
+  return "image/jpeg";
+}
+
+function readStoredZip(arrayBuffer) {
+  const view = new DataView(arrayBuffer);
+  const bytes = new Uint8Array(arrayBuffer);
+  const decoder = new TextDecoder("utf-8");
+
+  // Find End Of Central Directory (ZIP comment can be up to 65535 bytes).
+  let eocd = -1;
+  const min = Math.max(0, bytes.length - 65557);
+  for (let i = bytes.length - 22; i >= min; i--) {
+    if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("Private data file is not a valid AVDB package.");
+
+  const totalEntries = view.getUint16(eocd + 10, true);
+  const centralOffset = view.getUint32(eocd + 16, true);
+  const entries = new Map();
+  let pos = centralOffset;
+
+  for (let i = 0; i < totalEntries; i++) {
+    if (view.getUint32(pos, true) !== 0x02014b50) {
+      throw new Error("Private data package directory is damaged.");
+    }
+    const method = view.getUint16(pos + 10, true);
+    const compressedSize = view.getUint32(pos + 20, true);
+    const nameLen = view.getUint16(pos + 28, true);
+    const extraLen = view.getUint16(pos + 30, true);
+    const commentLen = view.getUint16(pos + 32, true);
+    const localOffset = view.getUint32(pos + 42, true);
+    const name = decoder.decode(bytes.slice(pos + 46, pos + 46 + nameLen));
+    entries.set(name, { method, compressedSize, localOffset });
+    pos += 46 + nameLen + extraLen + commentLen;
+  }
+
+  function extract(name) {
+    const e = entries.get(name);
+    if (!e) throw new Error(`Missing file inside private package: ${name}`);
+    if (e.method !== 0) {
+      throw new Error("This AVDB package uses compression not supported by this app version.");
+    }
+    const lo = e.localOffset;
+    if (view.getUint32(lo, true) !== 0x04034b50) {
+      throw new Error(`Damaged file entry: ${name}`);
+    }
+    const nameLen = view.getUint16(lo + 26, true);
+    const extraLen = view.getUint16(lo + 28, true);
+    const start = lo + 30 + nameLen + extraLen;
+    return bytes.slice(start, start + e.compressedSize);
+  }
+
+  return { entries, extract };
+}
 
 function norm(value) {
   return (value ?? "")
@@ -114,6 +192,7 @@ async function loadLocalRecords() {
     req.onerror = () => reject(req.error);
   });
   db.close();
+  revokePhotoUrls();
   allRecords = data;
   updateStatus();
   applySearch();
@@ -130,6 +209,7 @@ async function replaceLocalRecords(records) {
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  revokePhotoUrls();
   allRecords = records;
   updateStatus();
   applySearch();
@@ -213,8 +293,9 @@ function renderResults() {
     const node = $("cardTemplate").content.cloneNode(true);
     const card = node.querySelector(".card");
     const img = node.querySelector(".thumb");
-    img.src = r.photo || "";
-    img.style.visibility = r.photo ? "visible" : "hidden";
+    const purl = photoUrl(r);
+    img.src = purl;
+    img.style.visibility = purl ? "visible" : "hidden";
     node.querySelector(".nameEn").textContent = r.name_en || "";
     node.querySelector(".nameTe").textContent = r.name_te || "";
     node.querySelector(".meta").textContent =
@@ -264,9 +345,10 @@ function showDetail(r) {
   const box = $("detailContent");
   box.textContent = "";
 
-  if (r.photo) {
+  const purl = photoUrl(r);
+  if (purl) {
     const img = document.createElement("img");
-    img.src = r.photo;
+    img.src = purl;
     img.className = "detailPhoto";
     box.appendChild(img);
   }
@@ -306,10 +388,10 @@ function showDetail(r) {
   };
   buttons.appendChild(copy);
 
-  if (r.photo) {
+  if (purl) {
     const open = document.createElement("button");
     open.textContent = "Open photo";
-    open.onclick = () => window.open(r.photo, "_blank");
+    open.onclick = () => window.open(purl, "_blank");
     buttons.appendChild(open);
   }
 
@@ -348,19 +430,48 @@ function exportCsv() {
 
 async function importFile(file) {
   $("dataMessage").textContent = "Reading private file...";
-  const text = await file.text();
-  const payload = JSON.parse(text);
-  if (payload.format !== "ammanabrolu-search-data-v1" || !Array.isArray(payload.records)) {
-    throw new Error("This is not a compatible private data file.");
+
+  let records;
+
+  if (file.name.toLowerCase().endsWith(".avdb")) {
+    const buffer = await file.arrayBuffer();
+    const zip = readStoredZip(buffer);
+    const recordsBytes = zip.extract("records.json");
+    const payload = JSON.parse(new TextDecoder("utf-8").decode(recordsBytes));
+
+    if (payload.format !== "ammanabrolu-search-data-v2" || !Array.isArray(payload.records)) {
+      throw new Error("This is not a compatible Ammanabrolu private data package.");
+    }
+
+    records = payload.records.map((r) => {
+      const copy = {...r};
+      if (copy.photo_file) {
+        const bytes = zip.extract(copy.photo_file);
+        copy.photo_blob = new Blob([bytes], {type: mimeFromName(copy.photo_file)});
+      }
+      delete copy.photo_file;
+      return copy;
+    });
+  } else {
+    // Backward compatibility with the earlier JSON test format.
+    const rawText = await file.text();
+    const payload = JSON.parse(rawText);
+    if (payload.format !== "ammanabrolu-search-data-v1" || !Array.isArray(payload.records)) {
+      throw new Error("This is not a compatible private data file.");
+    }
+    records = payload.records;
   }
-  if (!confirm(`Import ${payload.records.length.toLocaleString()} private records onto this device?`)) {
+
+  if (!confirm(`Import ${records.length.toLocaleString()} private records onto this device?`)) {
     return;
   }
-  $("dataMessage").textContent = "Saving locally on this device...";
-  await replaceLocalRecords(payload.records);
+
+  $("dataMessage").textContent = "Saving records and photos locally on this iPhone...";
+  await replaceLocalRecords(records);
   $("dataMessage").textContent =
-    `Imported ${payload.records.length.toLocaleString()} records locally.`;
+    `Imported ${records.length.toLocaleString()} records locally on this device.`;
 }
+
 
 $("dataBtn").onclick = () => $("dataPanel").classList.toggle("hidden");
 $("clearDataBtn").onclick = async () => {
