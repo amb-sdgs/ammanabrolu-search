@@ -1,4 +1,4 @@
-const CACHE = "ammanabrolu-search-shell-v2";
+const CACHE = "ammanabrolu-search-shell-v3";
 const ASSETS = [
   "./",
   "./index.html",

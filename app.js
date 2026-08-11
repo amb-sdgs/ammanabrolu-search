@@ -429,12 +429,21 @@ function exportCsv() {
 }
 
 async function importFile(file) {
-  $("dataMessage").textContent = "Reading private file...";
+  $("dataMessage").textContent =
+    `Reading ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)...`;
 
   let records;
 
-  if (file.name.toLowerCase().endsWith(".avdb")) {
-    const buffer = await file.arrayBuffer();
+  // Do not rely on the filename extension. iPhone may treat a custom .avdb
+  // extension as an unknown file type. Detect the ZIP package from its bytes.
+  const buffer = await file.arrayBuffer();
+  const sig = new Uint8Array(buffer, 0, Math.min(4, buffer.byteLength));
+  const isZip =
+    sig.length >= 4 &&
+    sig[0] === 0x50 && sig[1] === 0x4B &&
+    sig[2] === 0x03 && sig[3] === 0x04;
+
+  if (isZip) {
     const zip = readStoredZip(buffer);
     const recordsBytes = zip.extract("records.json");
     const payload = JSON.parse(new TextDecoder("utf-8").decode(recordsBytes));
@@ -443,18 +452,23 @@ async function importFile(file) {
       throw new Error("This is not a compatible Ammanabrolu private data package.");
     }
 
-    records = payload.records.map((r) => {
+    records = payload.records.map((r, i) => {
       const copy = {...r};
       if (copy.photo_file) {
         const bytes = zip.extract(copy.photo_file);
         copy.photo_blob = new Blob([bytes], {type: mimeFromName(copy.photo_file)});
       }
       delete copy.photo_file;
+
+      if (i > 0 && i % 500 === 0) {
+        $("dataMessage").textContent =
+          `Preparing private records and photos... ${i.toLocaleString()} / ${payload.records.length.toLocaleString()}`;
+      }
       return copy;
     });
   } else {
     // Backward compatibility with the earlier JSON test format.
-    const rawText = await file.text();
+    const rawText = new TextDecoder("utf-8").decode(new Uint8Array(buffer));
     const payload = JSON.parse(rawText);
     if (payload.format !== "ammanabrolu-search-data-v1" || !Array.isArray(payload.records)) {
       throw new Error("This is not a compatible private data file.");
@@ -482,7 +496,7 @@ $("fileInput").onchange = async (e) => {
   if (!file) return;
   try { await importFile(file); }
   catch (err) {
-    $("dataMessage").textContent = `Import failed: ${err.message}`;
+    $("dataMessage").textContent = `Import failed: ${err.message}`; console.error(err);
   } finally {
     e.target.value = "";
   }
