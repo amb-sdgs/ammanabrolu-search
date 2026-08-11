@@ -25,7 +25,7 @@
     <section id="dataPanel" class="panel hidden">
       <h2>Private local data</h2>
       <p class="muted">
-        The public app contains no personal records or photos. Import your private .avdb data file from the iPhone Files app. It contains the records and photos, and is stored locally on this device.
+        The public app contains no personal records or photos. Import your private local data package from the iPhone Files app. It contains the records and photos and stays locally on this device.
       </p>
       <div class="row">
         <label class="fileButton">
@@ -38,13 +38,48 @@
     </section>
 
     <section class="panel searchPanel">
-      <label class="fieldLabel" for="query">Search</label>
+      <label class="fieldLabel" for="query">Search text</label>
       <input id="query" class="searchInput"
         placeholder="ఉదా: రమేష్ కుమార్  |  Lakshmi Devi  |  OR list: రమేష్, Lakshmi"
         autocomplete="off">
 
+      <div class="searchModes">
+        <label>Search in
+          <select id="searchField">
+            <option value="name">Voter name</option>
+            <option value="all">All fields</option>
+            <option value="relation">Relation name</option>
+            <option value="house">House number</option>
+            <option value="section">Section / area</option>
+            <option value="address">House + section</option>
+            <option value="epic">EPIC</option>
+            <option value="serial">Serial number</option>
+          </select>
+        </label>
+
+        <label>Match
+          <select id="matchType">
+            <option value="normal">Normal — close name / typo tolerant</option>
+            <option value="word_exact">Exact word(s) only</option>
+            <option value="prefix">Starts with input</option>
+            <option value="approx">Approximate / fuzzy</option>
+            <option value="contains">Contains letters anywhere</option>
+            <option value="exact">Exact full field</option>
+          </select>
+        </label>
+
+        <label>Comma list
+          <select id="multiMode">
+            <option value="auto">AUTO — comma means ANY</option>
+            <option value="any">ANY item</option>
+            <option value="all">ALL items</option>
+            <option value="single">Treat as one phrase</option>
+          </select>
+        </label>
+      </div>
+
       <div class="filters">
-        <label>Part
+        <label>Booth / Part
           <select id="partFilter">
             <option value="">All</option>
             <option>252</option><option>253</option><option>254</option>
@@ -74,17 +109,36 @@
 
       <div class="row actions">
         <button id="clearFiltersBtn" class="secondary">Clear</button>
-        <button id="exportBtn" class="secondary">Export CSV</button>
+        <button id="searchBtn">Search</button>
+        <button id="exportBtn" class="secondary">Export</button>
       </div>
     </section>
 
     <section class="resultHeader">
       <strong id="resultCount">0 results</strong>
-      <span class="muted small">comma = OR / ANY</span>
+      <span id="modeHint" class="muted small">Normal • Voter name • AUTO comma</span>
     </section>
 
     <section id="results" class="results"></section>
   </main>
+
+
+  <dialog id="exportDialog">
+    <div class="dialogTop">
+      <button id="closeExportBtn" class="secondary">Close</button>
+    </div>
+    <h2>Export matching results</h2>
+    <p class="muted small">Exports include all matching records, not just those visible on screen.</p>
+    <div class="exportGrid">
+      <button id="exportCsvBtn">CSV - data only</button>
+      <button id="exportXlsxBtn">Excel - data only</button>
+      <button id="exportXlsxPhotosBtn">Excel - with photos</button>
+      <button id="exportPdfBtn">PDF - no photos</button>
+      <button id="exportPdfPhotosBtn">PDF - with photos</button>
+    </div>
+    <p id="exportMessage" class="muted small"></p>
+    <p class="muted small">For PDF, iPhone opens the print preview. Tap Share in that preview and choose Save to Files to save the PDF.</p>
+  </dialog>
 
   <dialog id="detailDialog">
     <div class="dialogTop">
@@ -100,6 +154,7 @@
         <div class="nameEn"></div>
         <div class="nameTe"></div>
         <div class="meta"></div>
+        <div class="matched"></div>
       </div>
     </article>
   </template>
