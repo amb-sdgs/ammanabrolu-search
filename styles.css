@@ -1,0 +1,131 @@
+
+:root {
+  color-scheme: dark;
+  --bg: #0b0f16;
+  --panel: #131a24;
+  --panel2: #182230;
+  --border: #2b394b;
+  --text: #f4f7fb;
+  --muted: #93a4b8;
+  --accent: #4da3ff;
+  --danger: #8b2430;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Noto Sans Telugu",
+               "Nirmala UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: calc(12px + env(safe-area-inset-top)) 14px 12px;
+  background: rgba(11,15,22,.96);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+h1 { margin: 0; font-size: 22px; }
+.topbar p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+main { padding: 12px 12px calc(24px + env(safe-area-inset-bottom)); }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.hidden { display: none; }
+.fieldLabel { display: block; margin: 8px 0 6px; font-size: 12px; color: var(--muted); }
+input, select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0f1620;
+  color: var(--text);
+  padding: 9px 10px;
+}
+.searchInput { font-size: 16px; min-height: 48px; }
+.filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.filters label { color: var(--muted); font-size: 12px; }
+.filters input, .filters select { margin-top: 5px; }
+.row { display: flex; gap: 8px; align-items: center; }
+.actions { margin-top: 10px; justify-content: flex-end; }
+button, .fileButton {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  min-height: 40px;
+  color: var(--text);
+  background: #1c2a3b;
+}
+.secondary { background: #1c2a3b; }
+.danger { background: var(--danger); }
+.fileButton { display: inline-flex; align-items: center; }
+.fileButton input { display: none; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.resultHeader {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 10px 2px 8px;
+}
+.results { display: grid; gap: 8px; }
+.card {
+  display: flex; gap: 10px; align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+}
+.card:active { background: var(--panel2); }
+.thumb {
+  width: 58px; height: 72px; object-fit: contain;
+  flex: 0 0 auto; background: white; border-radius: 6px;
+}
+.cardText { min-width: 0; }
+.nameEn { font-weight: 700; font-size: 15px; }
+.nameTe { margin-top: 3px; font-size: 16px; line-height: 1.25; }
+.meta { margin-top: 6px; color: var(--muted); font-size: 11px; line-height: 1.35; }
+dialog {
+  width: min(94vw, 620px);
+  max-height: 92vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 14px;
+}
+dialog::backdrop { background: rgba(0,0,0,.72); }
+.dialogTop { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.detailPhoto {
+  display: block;
+  max-width: 190px; max-height: 230px;
+  margin: 0 auto 12px;
+  background: white;
+}
+.detailNameEn { text-align: center; font-size: 20px; font-weight: 800; }
+.detailNameTe { text-align: center; font-size: 21px; font-weight: 700; margin: 4px 0 14px; }
+.detailGrid { display: grid; gap: 8px; }
+.detailItem {
+  border-top: 1px solid var(--border);
+  padding-top: 7px;
+}
+.detailLabel { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+.detailValue { font-size: 14px; margin-top: 2px; line-height: 1.4; user-select: text; }
+.detailButtons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.empty {
+  text-align: center; color: var(--muted); padding: 34px 12px;
+}
+@media (min-width: 700px) {
+  main { max-width: 760px; margin: 0 auto; }
+}

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Ammanabrolu Search">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-180.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Ammanabrolu Search</title>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Ammanabrolu Search</h1>
+      <p id="statusLine">Private local data not loaded</p>
+    </div>
+    <button id="dataBtn" class="secondary">Private Data</button>
+  </header>
+
+  <main>
+    <section id="dataPanel" class="panel hidden">
+      <h2>Private local data</h2>
+      <p class="muted">
+        The public app contains no personal records or photos. Import your private
+        data file from the iPhone Files app. It is stored locally on this device.
+      </p>
+      <div class="row">
+        <label class="fileButton">
+          Import private data
+          <input id="fileInput" type="file" accept=".avdb,.json,application/json">
+        </label>
+        <button id="clearDataBtn" class="danger">Remove local data</button>
+      </div>
+      <p id="dataMessage" class="muted small"></p>
+    </section>
+
+    <section class="panel searchPanel">
+      <label class="fieldLabel" for="query">Search</label>
+      <input id="query" class="searchInput"
+        placeholder="ఉదా: రమేష్ కుమార్  |  Lakshmi Devi  |  OR list: రమేష్, Lakshmi"
+        autocomplete="off">
+
+      <div class="filters">
+        <label>Part
+          <select id="partFilter">
+            <option value="">All</option>
+            <option>252</option><option>253</option><option>254</option>
+            <option>255</option><option>256</option><option>257</option><option>258</option>
+          </select>
+        </label>
+
+        <label>Gender
+          <select id="genderFilter">
+            <option value="">All</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </label>
+
+        <label>Age from
+          <input id="ageMin" type="number" inputmode="numeric" min="0" max="120" placeholder="Any">
+        </label>
+
+        <label>Age to
+          <input id="ageMax" type="number" inputmode="numeric" min="0" max="120" placeholder="Any">
+        </label>
+      </div>
+
+      <label class="fieldLabel" for="addressFilter">House / section filter</label>
+      <input id="addressFilter" placeholder="Optional">
+
+      <div class="row actions">
+        <button id="clearFiltersBtn" class="secondary">Clear</button>
+        <button id="exportBtn" class="secondary">Export CSV</button>
+      </div>
+    </section>
+
+    <section class="resultHeader">
+      <strong id="resultCount">0 results</strong>
+      <span class="muted small">comma = OR / ANY</span>
+    </section>
+
+    <section id="results" class="results"></section>
+  </main>
+
+  <dialog id="detailDialog">
+    <div class="dialogTop">
+      <button id="closeDialogBtn" class="secondary">Close</button>
+    </div>
+    <div id="detailContent"></div>
+  </dialog>
+
+  <template id="cardTemplate">
+    <article class="card">
+      <img class="thumb" alt="">
+      <div class="cardText">
+        <div class="nameEn"></div>
+        <div class="nameTe"></div>
+        <div class="meta"></div>
+      </div>
+    </article>
+  </template>
+
+  <script src="./app.js"></script>
+</body>
+</html>
